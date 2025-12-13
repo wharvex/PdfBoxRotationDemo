@@ -1,0 +1,45 @@
+*.class
+# Package Files
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+# Virtual machine crash logs, see www.java.com
+hs_err_pid*
+
+### Gradle ###
+.gradle
+/build/
+# Ignore Gradle GUI config
+gradle-app.setting
+# Avoid ignoring Gradle wrapper jar file (.jar files are usually ignored)
+!gradle-wrapper.jar
+# Cache of project
+.gradletasknamecache
+# Gradle Reports
+/reports/
+/buildSrc/build/
+
+### IntelliJ IDEA ###
+.idea/
+# Annotation processing
+/target/
+/out/
+# Project-specific user settings
+*.iml
+*.ipr
+*.iws
+
+# Sensitive information/user-specific files that should not be shared
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries
+.idea/vcs.xml
+.idea/jsLibraryMappings.xml
+.idea/scopes/
+.idea/libraries/
+.idea/gradle.xml # Often user-specific, but can be shared if team uses same setup
+
+# Unignore the .gitignore file within the .idea folder, which is managed by the IDE
+!.idea/.gitignore
