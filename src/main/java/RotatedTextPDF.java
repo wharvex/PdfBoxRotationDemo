@@ -31,38 +31,77 @@ public class RotatedTextPDF {
         try (PDPageContentStream contentStream = new PDPageContentStream(document, page,
             PDPageContentStream.AppendMode.APPEND, true, true)) {
           PDType1Font font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
-          int fontSize = 14;
-          contentStream.setFont(font, fontSize);
+          int iFontSize = 14;
+          contentStream.setFont(font, iFontSize);
 
-          float pageUpperRightX = page.getMediaBox().getUpperRightX();
-          float pageUpperRightY = page.getMediaBox().getUpperRightY();
+          final float fPageUpperRightX = page.getMediaBox().getUpperRightX();
+          final float fPageUpperRightY = page.getMediaBox().getUpperRightY();
 
-          int iOrigAngle = page.getRotation();
+          final int iOrigAngle = page.getRotation();
 
-          String text = "test text";
+          final String strText = "test text";
 
-          int textWidth = (int) ((font.getStringWidth(text) / 1000) * fontSize);
+          final int iTextWidth = (int) ((font.getStringWidth(strText) / 1000) * iFontSize);
 
-          float angle = 0;
-          float x = pageUpperRightX - 15 - textWidth;
-          float y = pageUpperRightY - 10 - fontSize;
-          float tX = 0;
-          float tY = 0;
+          float fAngle = 0;
+          float fTextX = fPageUpperRightX - 15 - iTextWidth;
+          float fTextY = fPageUpperRightY - 10 - iFontSize;
+          float fTransformTextX = 0;
+          float fTransformTextY = 0;
 
           if (iOrigAngle == 270) {
-            angle = iOrigAngle;
-            tX = pageUpperRightX - pageUpperRightY;
-            tY = pageUpperRightX;
+            fAngle = iOrigAngle;
+            fTransformTextX = fPageUpperRightX - fPageUpperRightY;
+            fTransformTextY = fPageUpperRightX;
+          } else if (iOrigAngle == 90) {
+            fAngle = iOrigAngle;
+            fTransformTextX = fPageUpperRightY;
+            fTransformTextY = fPageUpperRightY - fPageUpperRightX;
           }
 
-          if (iOrigAngle == 90) {
-            angle = iOrigAngle;
-            tX = pageUpperRightY;
-            tY = pageUpperRightY - pageUpperRightX;
+          float fRectXPadding = 10;
+          float fRectYPadding = 7;
+
+          float fRectX = fTextX - fRectXPadding;
+          float fRectY = fTextY - fRectYPadding;
+          float fRectWidth = iTextWidth + (fRectXPadding * 2);
+          float fRectHeight = (iFontSize * 0.72f) + (fRectYPadding * 2);
+          float fRectRadius = 10;
+
+          // When iOrigAngle == 270 or 90:
+          // fPageUpperRightX = 792
+          // fPageUpperRightY = 612
+          // fRectX = 718 (before the adjustment below)
+          // fRectY = 581 (before the adjustment below)
+
+          // When iOrigAngle == 0:
+          // fPageUpperRightX = 612
+          // fPageUpperRightY = 792
+          // fRectX = 538
+          // fRectY = 761
+
+          final float fUpperRightXRectXDiff = fPageUpperRightX - fRectX;
+          final float fUpperRightYRectYDiff = fPageUpperRightY - fRectY;
+
+          if (iOrigAngle == 270) {
+            final float fAddToRectX = fUpperRightXRectXDiff - fUpperRightYRectYDiff;
+            final float fAddToRectY = fUpperRightXRectXDiff - fRectY;
+            fRectX = fRectX + fAddToRectX;
+            fRectY = fRectY + fAddToRectY;
+          } else if (iOrigAngle == 90) {
+            final float fAddToRectX = fUpperRightYRectYDiff - fRectX;
+            final float fAddToRectY = fUpperRightYRectYDiff - fUpperRightXRectXDiff;
+            fRectX = fRectX + fAddToRectX;
+            fRectY = fRectY + fAddToRectY;
           }
 
-          setLineOfTextOnPage(contentStream, x, y, page.getRotation(), tX, tY, angle, text);
-          drawRoundedRectangle(contentStream, x - 10, y - 7, textWidth + 20, fontSize + 10, 10);
+          setLineOfTextOnPage(contentStream, fTextX, fTextY, page.getRotation(), fTransformTextX, fTransformTextY,
+              fAngle, strText);
+          if (iOrigAngle != 0) {
+            drawRoundedRectangle(contentStream, fRectX, fRectY, fRectWidth, fRectHeight, fRectRadius, iOrigAngle);
+          } else {
+            drawRoundedRectangle(contentStream, fRectX, fRectY, fRectWidth, fRectHeight, fRectRadius);
+          }
         }
       }
       saveUpdatedDocument(document);
@@ -102,6 +141,20 @@ public class RotatedTextPDF {
     contentStream.curveTo(x, y, x, y, x + radius, y);
     contentStream.closePath();
     contentStream.stroke();
+  }
+
+  private static void drawRoundedRectangle(PDPageContentStream contentStream, float x, float y, float width,
+                                           float height, float radius, float p_iOrigAngle) throws IOException {
+    contentStream.saveGraphicsState();
+
+    // Translate to rotation point, rotate, then translate back
+    contentStream.transform(Matrix.getTranslateInstance(x, y));
+    contentStream.transform(Matrix.getRotateInstance(Math.toRadians(p_iOrigAngle), 0, 0));
+    contentStream.transform(Matrix.getTranslateInstance(-x, -y));
+
+    drawRoundedRectangle(contentStream, x, y, width, height, radius);
+
+    contentStream.restoreGraphicsState();
   }
 
   private static void saveUpdatedDocument(PDDocument document) {
