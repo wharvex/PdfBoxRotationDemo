@@ -43,3 +43,5 @@ gradle-app.setting
 
 # Unignore the .gitignore file within the .idea folder, which is managed by the IDE
 !.idea/.gitignore
+
+updated_test_*

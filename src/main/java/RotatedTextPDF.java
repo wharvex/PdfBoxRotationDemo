@@ -37,47 +37,32 @@ public class RotatedTextPDF {
           float pageUpperRightX = page.getMediaBox().getUpperRightX();
           float pageUpperRightY = page.getMediaBox().getUpperRightY();
 
-          float x = 100;
-          float y = 100;
-          float angle = 100;
-
-          float tX = 100;
-          float tY = 100;
-
           int iOrigAngle = page.getRotation();
 
-          String text =
-                  "oA: " + iOrigAngle + "; " + "pX: " + x + "; pY: " + y + "; a: " + angle + "; tX: " + tX +
-                      "; tY: " + tY;
+          String text = "test text";
 
           int textWidth = (int) ((font.getStringWidth(text) / 1000) * fontSize);
 
-          x = pageUpperRightX - 10 - textWidth;
-          y = pageUpperRightY - 10 - fontSize;
-          tX = 0;
-          tY = 0;
+          float angle = 0;
+          float x = pageUpperRightX - 15 - textWidth;
+          float y = pageUpperRightY - 10 - fontSize;
+          float tX = 0;
+          float tY = 0;
 
-          if (iOrigAngle != 0) {
-            if (iOrigAngle < 180) {
-              angle = 10;
-              tX = 10;
-              tY = 10;
-            } else {
-              angle = 270;
-              tX = 175; // increase to move up
-              tY = 800; // increase to move left
-            }
+          if (iOrigAngle == 270) {
+            angle = iOrigAngle;
+            tX = pageUpperRightX - pageUpperRightY;
+            tY = pageUpperRightX;
           }
 
-          text =
-              "oA: " + iOrigAngle + "; " + "pX: " + x + "; pY: " + y + "; a: " + angle + "; tX: " + tX +
-                  "; tY: " + tY;
+          if (iOrigAngle == 90) {
+            angle = iOrigAngle;
+            tX = pageUpperRightY;
+            tY = pageUpperRightY - pageUpperRightX;
+          }
 
           setLineOfTextOnPage(contentStream, x, y, page.getRotation(), tX, tY, angle, text);
-          drawRoundedRectangle(contentStream, x - 10, y - 7, textWidth, fontSize + 10, 10);
-
-          String text2 = "Width: " + page.getMediaBox().getWidth() + ", Height: " + page.getMediaBox().getHeight();
-          setLineOfTextOnPage(contentStream, pageUpperRightX / 2, pageUpperRightY / 2, 0, 0, 0, 0, text2);
+          drawRoundedRectangle(contentStream, x - 10, y - 7, textWidth + 20, fontSize + 10, 10);
         }
       }
       saveUpdatedDocument(document);
