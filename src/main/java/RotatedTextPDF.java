@@ -235,7 +235,7 @@ public class RotatedTextPDF {
     } else if (iOrigAngle == 90) {
       fAngle = iOrigAngle;
       fTransformTextX = fPageUpperRightY;
-      fTransformTextY = fPageUpperRightY - fPageUpperRightX;
+      fTransformTextY = fPageUpperRightY - fPageUpperRightX - fXChange;
     }
 
     float fRectXPadding = 10;
@@ -271,7 +271,7 @@ public class RotatedTextPDF {
       final float fAddToRectX = fUpperRightYRectYDiff - fRectX;
       final float fAddToRectY = fUpperRightYRectYDiff - fUpperRightXRectXDiff;
       fRectX = fRectX + fAddToRectX;
-      fRectY = fRectY + fAddToRectY;
+      fRectY = fRectY + fAddToRectY - fXChange;
     }
 
     setLineOfTextOnPage(contentStream, fTextX, fTextY, iOrigAngle, fTransformTextX, fTransformTextY,
