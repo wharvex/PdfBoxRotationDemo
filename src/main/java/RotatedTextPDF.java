@@ -20,6 +20,9 @@ public class RotatedTextPDF {
 
     File file3 = new File("rotated_90.pdf");
     processFile(file3);
+
+    File file4 = new File("rotated_180.pdf");
+    processFile(file4);
   }
 
   private static void processFile(File file) {
@@ -57,6 +60,13 @@ public class RotatedTextPDF {
             fAngle = iOrigAngle;
             fTransformTextX = fPageUpperRightY;
             fTransformTextY = fPageUpperRightY - fPageUpperRightX;
+          }
+          else if (iOrigAngle == 180) {
+            // fPageUpperRightX = 612
+            // fPageUpperRightY = 792
+            fAngle = 180;
+            fTransformTextX = fPageUpperRightX; // Increase to move text left
+            fTransformTextY = fPageUpperRightY; // Increase to move text down
           }
 
           float fRectXPadding = 10;
