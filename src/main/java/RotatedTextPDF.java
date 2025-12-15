@@ -104,6 +104,8 @@ public class RotatedTextPDF {
           }
 
           createTopLeftStamp(contentStream, fPageUpperRightX, fPageUpperRightY, iOrigAngle);
+
+          createPageNumberFooter(contentStream, fPageUpperRightX, fPageUpperRightY, iOrigAngle);
         }
       }
       saveUpdatedDocument(document);
@@ -186,15 +188,17 @@ public class RotatedTextPDF {
     final int iTextWidth = (int) ((font.getStringWidth(strText) / 1000) * iFontSize);
 
     float fAngle = 0;
-    float fTextX = fPageUpperRightX - 15 - iTextWidth;
-    float fTextY = fPageUpperRightY - 10 - iFontSize;
+    float fTextX = (fPageUpperRightX / 2) - ((float) iTextWidth / 2);
+    float fTextY = iFontSize;
     float fTransformTextX = 0;
     float fTransformTextY = 0;
 
     if (iOrigAngle == 270) {
+      final float fAddToTransformX = fPageUpperRightY - fPageUpperRightX;
+      final float fAddToTransformY = fAddToTransformX / 2;
       fAngle = iOrigAngle;
-      fTransformTextX = fPageUpperRightX - fPageUpperRightY;
-      fTransformTextY = fPageUpperRightX;
+      fTransformTextX = fPageUpperRightX - fPageUpperRightY + fAddToTransformX;
+      fTransformTextY = fPageUpperRightX + fAddToTransformY; // increase to move text left
     } else if (iOrigAngle == 90) {
       fAngle = iOrigAngle;
       fTransformTextX = fPageUpperRightY;
