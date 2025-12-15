@@ -105,7 +105,7 @@ public class RotatedTextPDF {
 
           createTopLeftStamp(contentStream, fPageUpperRightX, fPageUpperRightY, iOrigAngle);
 
-          createPageNumberFooter(contentStream, fPageUpperRightX, fPageUpperRightY, iOrigAngle);
+          createPageFooter(contentStream, fPageUpperRightX, fPageUpperRightY, iOrigAngle);
         }
       }
       saveUpdatedDocument(document);
@@ -177,8 +177,8 @@ public class RotatedTextPDF {
     }
   }
 
-  private static void createPageNumberFooter(PDPageContentStream contentStream, final float fPageUpperRightX,
-                                             final float fPageUpperRightY, final int iOrigAngle) throws IOException {
+  private static void createPageFooter(PDPageContentStream contentStream, final float fPageUpperRightX,
+                                       final float fPageUpperRightY, final int iOrigAngle) throws IOException {
     PDType1Font font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
     int iFontSize = 14;
     contentStream.setFont(font, iFontSize);
@@ -192,17 +192,17 @@ public class RotatedTextPDF {
     float fTextY = iFontSize;
     float fTransformTextX = 0;
     float fTransformTextY = 0;
+    final float fAddToTransformX = fPageUpperRightY - fPageUpperRightX;
+    final float fAddToTransformY = fAddToTransformX / 2;
 
     if (iOrigAngle == 270) {
-      final float fAddToTransformX = fPageUpperRightY - fPageUpperRightX;
-      final float fAddToTransformY = fAddToTransformX / 2;
       fAngle = iOrigAngle;
       fTransformTextX = fPageUpperRightX - fPageUpperRightY + fAddToTransformX;
       fTransformTextY = fPageUpperRightX + fAddToTransformY; // increase to move text left
     } else if (iOrigAngle == 90) {
       fAngle = iOrigAngle;
-      fTransformTextX = fPageUpperRightY;
-      fTransformTextY = fPageUpperRightY - fPageUpperRightX;
+      fTransformTextX = fPageUpperRightY - fAddToTransformX; // increase to move text down
+      fTransformTextY = fPageUpperRightY - fPageUpperRightX - fAddToTransformY; // increase to move right
     }
 
     setLineOfTextOnPage(contentStream, fTextX, fTextY, iOrigAngle, fTransformTextX, fTransformTextY,
