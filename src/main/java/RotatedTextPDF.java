@@ -102,6 +102,8 @@ public class RotatedTextPDF {
           } else {
             drawRoundedRectangle(contentStream, fRectX, fRectY, fRectWidth, fRectHeight, fRectRadius);
           }
+
+          createTopLeftStamp(contentStream, fPageUpperRightX, fPageUpperRightY, iOrigAngle);
         }
       }
       saveUpdatedDocument(document);
@@ -171,5 +173,110 @@ public class RotatedTextPDF {
     } catch (Exception e) {
       e.printStackTrace();
     }
+  }
+
+  private static void createPageNumberFooter(PDPageContentStream contentStream, final float fPageUpperRightX,
+                                             final float fPageUpperRightY, final int iOrigAngle) throws IOException {
+    PDType1Font font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+    int iFontSize = 14;
+    contentStream.setFont(font, iFontSize);
+
+    final String strText = "test text footer";
+
+    final int iTextWidth = (int) ((font.getStringWidth(strText) / 1000) * iFontSize);
+
+    float fAngle = 0;
+    float fTextX = fPageUpperRightX - 15 - iTextWidth;
+    float fTextY = fPageUpperRightY - 10 - iFontSize;
+    float fTransformTextX = 0;
+    float fTransformTextY = 0;
+
+    if (iOrigAngle == 270) {
+      fAngle = iOrigAngle;
+      fTransformTextX = fPageUpperRightX - fPageUpperRightY;
+      fTransformTextY = fPageUpperRightX;
+    } else if (iOrigAngle == 90) {
+      fAngle = iOrigAngle;
+      fTransformTextX = fPageUpperRightY;
+      fTransformTextY = fPageUpperRightY - fPageUpperRightX;
+    }
+
+    setLineOfTextOnPage(contentStream, fTextX, fTextY, iOrigAngle, fTransformTextX, fTransformTextY,
+        fAngle, strText);
+
+  }
+
+  private static void createTopLeftStamp(PDPageContentStream contentStream, final float fPageUpperRightX,
+                                         final float fPageUpperRightY, final int iOrigAngle) throws IOException {
+    PDType1Font font = new PDType1Font(Standard14Fonts.FontName.HELVETICA);
+    int iFontSize = 14;
+    contentStream.setFont(font, iFontSize);
+
+    final String strText = "test text in the top left of the page, making this a little longer";
+
+    final int iTextWidth = (int) ((font.getStringWidth(strText) / 1000) * iFontSize);
+
+    float fAngle = 0;
+    float fTextX = 10;
+    float fTextY = fPageUpperRightY - 10 - iFontSize;
+    float fTransformTextX = 0;
+    float fTransformTextY = 0;
+
+    float fXChange = fPageUpperRightY - fPageUpperRightX;
+
+    if (iOrigAngle == 270) {
+      fAngle = iOrigAngle;
+      fTransformTextX = fPageUpperRightX - fPageUpperRightY;
+      fTransformTextY = fPageUpperRightX + fXChange;
+    } else if (iOrigAngle == 90) {
+      fAngle = iOrigAngle;
+      fTransformTextX = fPageUpperRightY;
+      fTransformTextY = fPageUpperRightY - fPageUpperRightX;
+    }
+
+    float fRectXPadding = 10;
+    float fRectYPadding = 7;
+
+    float fRectX = fTextX - fRectXPadding;
+    float fRectY = fTextY - fRectYPadding;
+    float fRectWidth = iTextWidth + (fRectXPadding * 2);
+    float fRectHeight = (iFontSize * 0.72f) + (fRectYPadding * 2);
+    float fRectRadius = 10;
+
+    // When iOrigAngle == 270 or 90:
+    // fPageUpperRightX = 792
+    // fPageUpperRightY = 612
+    // fRectX = 718 (before the adjustment below)
+    // fRectY = 581 (before the adjustment below)
+
+    // When iOrigAngle == 0:
+    // fPageUpperRightX = 612
+    // fPageUpperRightY = 792
+    // fRectX = 538
+    // fRectY = 761
+
+    final float fUpperRightXRectXDiff = fPageUpperRightX - fRectX;
+    final float fUpperRightYRectYDiff = fPageUpperRightY - fRectY;
+
+    if (iOrigAngle == 270) {
+      final float fAddToRectX = fUpperRightXRectXDiff - fUpperRightYRectYDiff;
+      final float fAddToRectY = fUpperRightXRectXDiff - fRectY;
+      fRectX = fRectX + fAddToRectX; // decrease to move rectangle down.
+      fRectY = fRectY + fAddToRectY + fXChange; // increase to move rectangle left.
+    } else if (iOrigAngle == 90) {
+      final float fAddToRectX = fUpperRightYRectYDiff - fRectX;
+      final float fAddToRectY = fUpperRightYRectYDiff - fUpperRightXRectXDiff;
+      fRectX = fRectX + fAddToRectX;
+      fRectY = fRectY + fAddToRectY;
+    }
+
+    setLineOfTextOnPage(contentStream, fTextX, fTextY, iOrigAngle, fTransformTextX, fTransformTextY,
+        fAngle, strText);
+    if (iOrigAngle != 0) {
+      drawRoundedRectangle(contentStream, fRectX, fRectY, fRectWidth, fRectHeight, fRectRadius, iOrigAngle);
+    } else {
+      drawRoundedRectangle(contentStream, fRectX, fRectY, fRectWidth, fRectHeight, fRectRadius);
+    }
+
   }
 }
