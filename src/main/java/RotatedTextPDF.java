@@ -1,32 +1,43 @@
 import org.apache.pdfbox.Loader;
+import org.apache.pdfbox.cos.COSDictionary;
+import org.apache.pdfbox.cos.COSName;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
 import org.apache.pdfbox.pdmodel.PDPageContentStream;
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDMarkedContentReference;
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureElement;
+import org.apache.pdfbox.pdmodel.documentinterchange.logicalstructure.PDStructureTreeRoot;
+import org.apache.pdfbox.pdmodel.documentinterchange.markedcontent.PDMarkedContent;
+import org.apache.pdfbox.pdmodel.documentinterchange.taggedpdf.StandardStructureTypes;
 import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
+import org.apache.pdfbox.text.PDFMarkedContentExtractor;
 import org.apache.pdfbox.util.Matrix;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 public class RotatedTextPDF {
 
   public static void main(String[] args) {
-    File file1 = new File("rotated_270.pdf");
-    processFile(file1);
+    // File file1 = new File("rotated_270.pdf");
+    // processFile(file1);
 
     File file2 = new File("hey_portrait.pdf");
     processFile(file2);
 
-    File file3 = new File("rotated_90.pdf");
-    processFile(file3);
+    // File file3 = new File("rotated_90.pdf");
+    // processFile(file3);
 
-    File file4 = new File("rotated_180.pdf");
-    processFile(file4);
+    // File file4 = new File("rotated_180.pdf");
+    // processFile(file4);
   }
 
   private static void processFile(File file) {
     try (PDDocument document = Loader.loadPDF(file)) {
+      int mcid = getNextMCID(document);
       int numberOfPages = document.getNumberOfPages();
       for (int curPageNum = 0; curPageNum < numberOfPages; curPageNum++) {
         System.out.println("Page " + (curPageNum + 1));
@@ -60,8 +71,7 @@ public class RotatedTextPDF {
             fAngle = iOrigAngle;
             fTransformTextX = fPageUpperRightY;
             fTransformTextY = fPageUpperRightY - fPageUpperRightX;
-          }
-          else if (iOrigAngle == 180) {
+          } else if (iOrigAngle == 180) {
             // fPageUpperRightX = 612
             // fPageUpperRightY = 792
             fAngle = 180;
@@ -105,7 +115,7 @@ public class RotatedTextPDF {
             fRectY = fRectY + fAddToRectY;
           }
 
-          setLineOfTextOnPage(contentStream, fTextX, fTextY, page.getRotation(), fTransformTextX, fTransformTextY,
+          setLineOfTextOnPage(mcid, document, page, contentStream, fTextX, fTextY, page.getRotation(), fTransformTextX, fTransformTextY,
               fAngle, strText);
           if (iOrigAngle != 0) {
             drawRoundedRectangle(contentStream, fRectX, fRectY, fRectWidth, fRectHeight, fRectRadius, iOrigAngle);
@@ -140,6 +150,43 @@ public class RotatedTextPDF {
     p_contentStream.newLineAtOffset(p_fLinePosX, p_fLinePosY);
     p_contentStream.showText(p_strText);
     p_contentStream.endText();
+  }
+
+  private static void setLineOfTextOnPage(int p_curMCID, PDDocument p_pdDocument, PDPage p_pdPage, PDPageContentStream p_contentStream,
+                                          float p_fLinePosX, float p_fLinePosY,
+                                          int p_iOrigAngle, float p_fTranslateX, float p_fTranslateY, float p_fAngle,
+                                          String p_strText)
+      throws IOException {
+    // Get the document structure element.
+    PDStructureElement documentElement = getDocumentStructureElement(p_pdDocument);
+
+    // Create the stamp element.
+    PDStructureElement stampElement = createStampElement(documentElement, p_strText);
+
+    int mcid = getNextMCID(p_curMCID);
+
+    p_contentStream.beginText();
+    p_contentStream.beginMarkedContent(COSName.P, mcid);
+
+    if (p_iOrigAngle != 0) {
+      Matrix matrix = new Matrix();
+      matrix.translate(p_fTranslateX, p_fTranslateY);
+      matrix.rotate(Math.toRadians(p_fAngle));
+      p_contentStream.setTextMatrix(matrix);
+    }
+
+    p_contentStream.newLineAtOffset(p_fLinePosX, p_fLinePosY);
+    p_contentStream.showText(p_strText);
+    p_contentStream.endMarkedContent();
+    p_contentStream.endText();
+
+    // Create a marked content reference and add it to the stamp element.
+    PDMarkedContentReference markedContentReference = new PDMarkedContentReference();
+    markedContentReference.setMCID(mcid);
+    markedContentReference.setPage(p_pdPage);
+    stampElement.appendKid(markedContentReference);
+
+    documentElement.appendKid(stampElement);
   }
 
   private static void drawRoundedRectangle(PDPageContentStream contentStream, float x, float y, float width,
@@ -292,5 +339,64 @@ public class RotatedTextPDF {
       drawRoundedRectangle(contentStream, fRectX, fRectY, fRectWidth, fRectHeight, fRectRadius);
     }
 
+  }
+
+  private static PDStructureElement getDocumentStructureElement(PDDocument document) {
+    PDStructureTreeRoot structureTreeRoot = document.getDocumentCatalog().getStructureTreeRoot();
+    PDStructureElement structureElement;
+    List<Object> kids = structureTreeRoot.getKids();
+    if (kids != null) {
+      for (Object obj : kids) {
+        if (obj instanceof PDStructureElement) {
+          structureElement = (PDStructureElement) obj;
+          COSDictionary dict = structureElement.getCOSObject();
+          String name = dict.getNameAsString(COSName.S);
+          if (name != null && name.equals(StandardStructureTypes.DOCUMENT)) {
+            return structureElement;
+          }
+        }
+      }
+    }
+    structureElement = new PDStructureElement(StandardStructureTypes.DOCUMENT, structureTreeRoot);
+    structureTreeRoot.appendKid(structureElement);
+    return structureElement;
+  }
+
+  private static PDStructureElement createStampElement(PDStructureElement parentElement, String stampText) {
+    PDStructureElement stampElement = new PDStructureElement(StandardStructureTypes.P, parentElement);
+    stampElement.setActualText(stampText);
+    stampElement.setAlternateDescription(stampText);
+    return stampElement;
+  }
+
+  private static PDMarkedContentReference getMarkedContentReference(PDStructureElement p_pdStructureElement) {
+    List<Object> kids = p_pdStructureElement.getKids();
+    if (kids != null) {
+      for (Object obj : kids) {
+        if (obj instanceof PDMarkedContentReference) {
+          return (PDMarkedContentReference) obj;
+        }
+      }
+    }
+    return null;
+  }
+
+  private static int getNextMCID(PDDocument p_pdDocument) throws IOException {
+    List<Integer> mcidList = new ArrayList<>();
+    PDFMarkedContentExtractor extractor = new PDFMarkedContentExtractor();
+    for (PDPage page : p_pdDocument.getPages()) {
+      extractor.processPage(page);
+      List<PDMarkedContent> markedContents = extractor.getMarkedContents();
+      for (PDMarkedContent content : markedContents) {
+        mcidList.add(content.getMCID());
+        System.out.println(content.getTag());
+        System.out.println(content.getActualText());
+      }
+    }
+    return mcidList.stream().max(Integer::compareTo).orElse(0) + 1;
+  }
+
+  private static int getNextMCID(int curMCID) {
+    return curMCID + 1;
   }
 }
